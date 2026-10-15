@@ -1,0 +1,549 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麻將戰績換算器</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 20px;
+    font-family: "Microsoft JhengHei", sans-serif;
+    background: #f3f5f2;
+    color: #25352d;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: auto;
+  }
+
+  h1 { margin-bottom: 6px; }
+  .subtitle { color: #718078; margin-bottom: 24px; }
+
+  .card {
+    background: white;
+    padding: 22px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 8px #00000008;
+  }
+
+  h2 { font-size: 19px; margin: 0 0 18px; }
+
+  .settings {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 7px;
+    color: #56665d;
+  }
+
+  input, select, button {
+    font: inherit;
+  }
+
+  input, select {
+    width: 100%;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #d6ded8;
+    border-radius: 8px;
+    background: white;
+  }
+
+  input:focus, select:focus {
+    outline: 2px solid #a7cdb5;
+    border-color: #548366;
+  }
+
+  .radio-group {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+  }
+
+  .radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+  }
+
+  .radio-group input { width: auto; }
+
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 580px;
+  }
+
+  th, td {
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid #edf0ed;
+  }
+
+  th {
+    font-size: 13px;
+    color: #637268;
+    background: #f7f9f7;
+  }
+
+  td input { padding: 9px 7px; }
+
+  .points {
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  .positive { color: #16834a; }
+  .negative { color: #d14d4d; }
+  .muted { color: #8b9690; }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-weight: 600;
+  }
+
+  .btn-add {
+    margin-top: 14px;
+    color: #286442;
+    background: #e8f3eb;
+  }
+
+  .btn-delete {
+    padding: 7px 10px;
+    background: #fff0ef;
+    color: #c14b45;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .summary-item {
+    background: #f5f8f5;
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .summary-label {
+    color: #718078;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .summary-value {
+    font-size: 22px;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+  }
+
+  .status {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 8px;
+    background: #f1f3f1;
+    font-size: 14px;
+  }
+
+  .status.ok {
+    color: #16834a;
+    background: #e8f5ec;
+  }
+
+  .status.warn {
+    color: #a15c00;
+    background: #fff3db;
+  }
+
+  .formula {
+    font-size: 13px;
+    color: #718078;
+    line-height: 1.8;
+    margin-top: 14px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 145px;
+    padding: 13px;
+    border: 1px solid #d6ded8;
+    border-radius: 8px;
+    resize: vertical;
+    line-height: 1.8;
+    font: inherit;
+  }
+
+  .btn-copy {
+    margin-top: 12px;
+    width: 100%;
+    background: #286442;
+    color: white;
+  }
+
+  .btn-copy:hover { background: #1d5032; }
+
+  @media (max-width: 600px) {
+    body { padding: 12px; }
+    .card { padding: 16px; }
+    .settings { grid-template-columns: 1fr; }
+    .summary { gap: 7px; }
+    .summary-item { padding: 10px; }
+    .summary-value { font-size: 17px; }
+  }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <h1>🀄 麻將戰績換算器</h1>
+  <div class="subtitle">輸入金額與東錢，自動換算未含東錢點數</div>
+
+  <!-- 牌局設定 -->
+  <section class="card">
+    <h2>⚙️ 牌局設定</h2>
+
+    <div class="settings">
+      <div>
+        <label for="base">底（元）</label>
+        <input id="base" type="number" value="100" min="0">
+      </div>
+
+      <div>
+        <label for="tai">台（元）</label>
+        <input id="tai" type="number" value="20" min="0">
+      </div>
+
+      <div>
+        <label for="pointRate">每點換算金額（元）</label>
+        <input id="pointRate" type="number" value="20" min="0.01" step="any">
+      </div>
+
+      <div>
+        <label for="eastValue">每個東錢（元）</label>
+        <input id="eastValue" type="number" value="50" min="0" step="any">
+      </div>
+
+      <div style="grid-column: 1 / -1">
+        <label>輸入的金額是否已扣除東錢？</label>
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="eastMode"
+                   value="included" checked>
+            含東錢
+          </label>
+          <label>
+            <input type="radio" name="eastMode"
+                   value="excluded">
+            未含東錢
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="formula">
+      含東錢：換算金額 = 輸入金額 + 東錢個數 × 東錢金額<br>
+      未含東錢：換算金額 = 輸入金額<br>
+      點數 = 換算金額 ÷ 每點換算金額
+    </div>
+  </section>
+
+  <!-- 玩家輸入 -->
+  <section class="card">
+    <h2>📝 玩家戰績</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>金額（元）</th>
+            <th>東錢個數</th>
+            <th>換算點數</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="playerRows"></tbody>
+      </table>
+    </div>
+
+    <button type="button" class="btn-add" id="addPlayer">
+      ＋ 新增玩家
+    </button>
+  </section>
+
+  <!-- 加總結果 -->
+  <section class="card">
+    <h2>📊 本場合計</h2>
+
+    <div class="summary">
+      <div class="summary-item">
+        <div class="summary-label">金額合計</div>
+        <div class="summary-value" id="totalMoney">0 元</div>
+      </div>
+
+      <div class="summary-item">
+        <div class="summary-label">東錢合計</div>
+        <div class="summary-value" id="totalEast">0 個</div>
+      </div>
+
+      <div class="summary-item">
+        <div class="summary-label">點數合計</div>
+        <div class="summary-value" id="totalPoints">0 點</div>
+      </div>
+    </div>
+
+    <div class="status" id="balanceStatus">
+      請輸入玩家資料
+    </div>
+  </section>
+
+  <!-- 複製文字 -->
+  <section class="card">
+    <h2>📋 戰績文字輸出</h2>
+
+    <label for="output">可直接複製</label>
+    <textarea id="output" readonly></textarea>
+
+    <button type="button" class="btn-copy" id="copyButton">
+      複製全部戰績
+    </button>
+  </section>
+
+</div>
+
+<script>
+  const tbody = document.getElementById("playerRows");
+
+  // 建立一位玩家
+  function addPlayer(name = "", money = "", east = 0) {
+    const tr = document.createElement("tr");
+
+    const nameTd = document.createElement("td");
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = "姓名";
+    nameInput.value = name;
+    nameInput.className = "player-name";
+    nameInput.setAttribute("aria-label", "玩家姓名");
+    nameTd.appendChild(nameInput);
+
+    const moneyTd = document.createElement("td");
+    const moneyInput = document.createElement("input");
+    moneyInput.type = "number";
+    moneyInput.step = "any";
+    moneyInput.placeholder = "例如 1500 或 -500";
+    moneyInput.value = money;
+    moneyInput.className = "player-money";
+    moneyInput.setAttribute("aria-label", "輸入金額");
+    moneyTd.appendChild(moneyInput);
+
+    const eastTd = document.createElement("td");
+    const eastInput = document.createElement("input");
+    eastInput.type = "number";
+    eastInput.min = "0";
+    eastInput.placeholder = "例如1";
+    eastInput.step = "1";
+    eastInput.value = east;
+    eastInput.className = "player-east";
+    eastInput.setAttribute("aria-label", "東錢個數");
+    eastTd.appendChild(eastInput);
+
+    const pointsTd = document.createElement("td");
+    pointsTd.className = "points muted";
+    pointsTd.textContent = "0 點";
+
+    const actionTd = document.createElement("td");
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "btn-delete";
+    deleteButton.textContent = "刪除";
+    deleteButton.setAttribute("aria-label", "刪除此玩家");
+    deleteButton.addEventListener("click", () => {
+      tr.remove();
+      calculate();
+    });
+    actionTd.appendChild(deleteButton);
+
+    tr.append(nameTd, moneyTd, eastTd, pointsTd, actionTd);
+    tbody.appendChild(tr);
+
+    tr.querySelectorAll("input").forEach(input => {
+      input.addEventListener("input", calculate);
+    });
+
+    calculate();
+    return nameInput;
+  }
+
+  // 數字顯示：正數加 + 號，負數保留 - 號
+  function signedNumber(value) {
+    const rounded = Math.round((value + Number.EPSILON) * 1000000) / 1000000;
+    if (Object.is(rounded, -0) || rounded === 0) return "0";
+    return rounded > 0 ? "+" + rounded : String(rounded);
+  }
+
+  function displayNumber(value) {
+    return Number(value.toFixed(6)).toLocaleString("zh-TW", {
+      maximumFractionDigits: 6
+    });
+  }
+
+  function calculate() {
+    const pointRate = Number(document.getElementById("pointRate").value);
+    const eastValue = Number(document.getElementById("eastValue").value);
+    const mode = document.querySelector(
+      'input[name="eastMode"]:checked'
+    ).value;
+
+    let totalMoney = 0;
+    let totalEast = 0;
+    let totalPoints = 0;
+    const lines = [];
+
+    tbody.querySelectorAll("tr").forEach(tr => {
+      const name = tr.querySelector(".player-name").value.trim();
+      const moneyInput = tr.querySelector(".player-money").value;
+      const eastInput = tr.querySelector(".player-east").value;
+
+      const money = moneyInput === "" ? 0 : Number(moneyInput);
+      const east = eastInput === "" ? 0 : Number(eastInput);
+      const safeEast = Number.isFinite(east) && east >= 0 ? east : 0;
+      const safeMoney = Number.isFinite(money) ? money : 0;
+
+      // 含東錢：輸入金額已扣除東錢，還原真實輸贏後換算點數
+      // 未含東錢：輸入金額就是原始輸贏
+      const adjustedMoney = mode === "included"
+        ? safeMoney + safeEast * eastValue
+        : safeMoney;
+
+      const validRate = Number.isFinite(pointRate) && pointRate > 0;
+      const points = validRate
+        ? (mode === "included"
+            ? adjustedMoney / pointRate
+            : safeMoney / pointRate)
+        : 0;
+
+      const pointsCell = tr.querySelector(".points");
+      if (validRate) {
+        pointsCell.textContent = signedNumber(points) + " 點";
+        pointsCell.className = "points " +
+          (points > 0 ? "positive" :
+           points < 0 ? "negative" : "muted");
+      } else {
+        pointsCell.textContent = "請設定每點金額";
+        pointsCell.className = "points muted";
+      }
+
+      totalMoney += safeMoney;
+      totalEast += safeEast;
+      totalPoints += points;
+
+      // 空白姓名不輸出，方便預先保留空白列
+      if (name !== "") {
+        lines.push(
+          `${name} ${signedNumber(safeMoney)} ` +
+          `${safeEast}東 ` +
+          `${validRate ? signedNumber(points) : "未設定"}點`
+        );
+      }
+    });
+
+    document.getElementById("totalMoney").textContent =
+      displayNumber(totalMoney) + " 元";
+
+    document.getElementById("totalEast").textContent =
+      displayNumber(totalEast) + " 個";
+
+    document.getElementById("totalPoints").textContent =
+      Number.isFinite(pointRate) && pointRate > 0
+        ? signedNumber(totalPoints) + " 點"
+        : "—";
+
+    const status = document.getElementById("balanceStatus");
+    const moneyRows = [...tbody.querySelectorAll("tr")].filter(tr =>
+      tr.querySelector(".player-name").value.trim() !== "" ||
+      tr.querySelector(".player-money").value !== ""
+    );
+
+    const isBalanced = Math.abs(totalMoney) < 0.000001;
+    status.className = "status " +
+      (isBalanced && moneyRows.length > 0 ? "ok" : "warn");
+
+    if (moneyRows.length === 0) {
+      status.textContent = "請輸入玩家資料";
+    } else if (isBalanced) {
+      status.textContent = "✓ 金額合計為 0，已平帳";
+    } else {
+      status.textContent =
+        `⚠ 金額合計為 ${signedNumber(totalMoney)} 元，` +
+        "請確認是否已平帳。";
+    }
+
+    document.getElementById("output").value = lines.join("\n");
+  }
+
+  document.getElementById("addPlayer").addEventListener("click", () => {
+    const input = addPlayer();
+    input.focus();
+  });
+
+  document.querySelectorAll(
+    '#base, #tai, #pointRate, #eastValue, input[name="eastMode"]'
+  ).forEach(input => {
+    input.addEventListener("input", calculate);
+    input.addEventListener("change", calculate);
+  });
+
+  document.getElementById("copyButton").addEventListener("click", async () => {
+    const output = document.getElementById("output");
+    const button = document.getElementById("copyButton");
+
+    if (!output.value.trim()) {
+      alert("目前沒有戰績可以複製！");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(output.value);
+      button.textContent = "✓ 已複製！";
+    } catch (error) {
+      // 備援方式：支援部分非 HTTPS 或本機開啟情境
+      output.focus();
+      output.select();
+      const success = document.execCommand("copy");
+      button.textContent = success ? "✓ 已複製！" : "請手動複製文字";
+    }
+
+    setTimeout(() => {
+      button.textContent = "複製全部戰績";
+    }, 2000);
+  });
+
+  // 預設四位玩家
+  addPlayer("", "", 0);
+  addPlayer("", "", 0);
+  addPlayer("", "", 0);
+  addPlayer("", "", 0);
+</script>
+</body>
+</html>
