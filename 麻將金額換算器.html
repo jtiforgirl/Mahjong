@@ -258,6 +258,22 @@
           </label>
         </div>
       </div>
+
+      <div style="grid-column: 1 / -1">
+        <label>戰績文字是否顯示東錢？</label>
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="eastDisplay"
+                   value="show" checked>
+            顯示東錢
+          </label>
+          <label>
+            <input type="radio" name="eastDisplay"
+                   value="hide">
+            不顯示東錢
+          </label>
+        </div>
+      </div>
     </div>
 
     <div class="formula">
@@ -414,6 +430,9 @@
     const mode = document.querySelector(
       'input[name="eastMode"]:checked'
     ).value;
+    const eastDisplay = document.querySelector(
+      'input[name="eastDisplay"]:checked'
+    ).value;
 
     let totalMoney = 0;
     let totalEast = 0;
@@ -460,9 +479,13 @@
 
       // 空白姓名不輸出，方便預先保留空白列
       if (name !== "") {
+        const eastText = eastDisplay === "show"
+          ? `${safeEast}東 `
+          : "";
+
         lines.push(
-          `${name} ${signedNumber(safeMoney)} ` +
-          `${safeEast}東 ` +
+          `${name} ${signedNumber(safeMoney)}元 ` +
+          eastText +
           `${validRate ? signedNumber(points) : "未設定"}點`
         );
       }
@@ -508,7 +531,7 @@
   });
 
   document.querySelectorAll(
-    '#base, #tai, #pointRate, #eastValue, input[name="eastMode"]'
+    '#base, #tai, #pointRate, #eastValue, input[name="eastMode"], input[name="eastDisplay"]'
   ).forEach(input => {
     input.addEventListener("input", calculate);
     input.addEventListener("change", calculate);
