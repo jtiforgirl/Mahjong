@@ -120,6 +120,27 @@
     font-weight: 600;
   }
 
+  .autosave-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: -10px 0 18px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    background: #e8f3eb;
+    color: #286442;
+    font-size: 13px;
+  }
+
+  .btn-clear {
+    margin-top: 14px;
+    margin-left: 8px;
+    color: #a13c35;
+    background: #fff0ef;
+  }
+
   .btn-add {
     margin-top: 14px;
     color: #286442;
@@ -217,6 +238,10 @@
 
   <h1>🀄 麻將戰績換算器</h1>
   <div class="subtitle">輸入金額與東錢，自動換算未含東錢點數</div>
+  <div class="autosave-bar">
+    <span id="saveStatus">✓ 資料會自動暫存於此瀏覽器</span>
+    <span>關閉網頁後再開啟，仍可接續輸入</span>
+  </div>
 
   <!-- 牌局設定 -->
   <section class="card">
@@ -322,6 +347,9 @@
     <button type="button" class="btn-add" id="addPlayer">
       ＋ 新增玩家
     </button>
+    <button type="button" class="btn-clear" id="clearRecords">
+      清空本次紀錄
+    </button>
   </section>
 
   <!-- 加總結果 -->
@@ -366,6 +394,73 @@
 
 <script>
   const tbody = document.getElementById("playerRows");
+  const STORAGE_KEY = "mahjongScoreCalculatorDraft_v1";
+  let isRestoring = false;
+
+  function getSelected(name) {
+    return document.querySelector(`input[name="${name}"]:checked`).value;
+  }
+
+  function saveDraft() {
+    if (isRestoring) return;
+    const draft = {
+      settings: {
+        base: document.getElementById("base").value,
+        tai: document.getElementById("tai").value,
+        pointRate: document.getElementById("pointRate").value,
+        eastValue: document.getElementById("eastValue").value,
+        eastMode: getSelected("eastMode"),
+        eastDisplay: getSelected("eastDisplay"),
+        jiangDisplay: getSelected("jiangDisplay")
+      },
+      players: [...tbody.querySelectorAll("tr")].map(tr => ({
+        name: tr.querySelector(".player-name").value,
+        money: tr.querySelector(".player-money").value,
+        jiang: tr.querySelector(".player-jiang").value,
+        east: tr.querySelector(".player-east").value
+      }))
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+      document.getElementById("saveStatus").textContent = "✓ 已自動暫存於此瀏覽器";
+    } catch (error) {
+      document.getElementById("saveStatus").textContent = "⚠ 暫存失敗，請勿清除瀏覽器資料";
+    }
+  }
+
+  function restoreDraft() {
+    let draft;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return false;
+      draft = JSON.parse(saved);
+    } catch (error) {
+      return false;
+    }
+    if (!draft || !draft.settings || !Array.isArray(draft.players)) return false;
+
+    isRestoring = true;
+    const settings = draft.settings;
+    ["base", "tai", "pointRate", "eastValue"].forEach(id => {
+      if (settings[id] !== undefined) document.getElementById(id).value = settings[id];
+    });
+    ["eastMode", "eastDisplay", "jiangDisplay"].forEach(name => {
+      if (settings[name]) {
+        const radio = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+        if (radio) radio.checked = true;
+      }
+    });
+    tbody.innerHTML = "";
+    draft.players.forEach(player => addPlayer(
+      player.name ?? "", player.money ?? "", player.jiang ?? 0, player.east ?? 0
+    ));
+    if (draft.players.length === 0) {
+      for (let i = 0; i < 4; i++) addPlayer();
+    }
+    isRestoring = false;
+    document.getElementById("saveStatus").textContent = "✓ 已載入上次暫存紀錄";
+    return true;
+  }
 
   // 建立一位玩家
   function addPlayer(name = "", money = "", jiang = 0, east = 0) {
@@ -561,6 +656,7 @@
     }
 
     document.getElementById("output").value = lines.join("\n");
+    saveDraft();
   }
 
   document.getElementById("addPlayer").addEventListener("click", () => {
@@ -600,11 +696,30 @@
     }, 2000);
   });
 
-  // 預設四位玩家
-  addPlayer("", "", 0);
-  addPlayer("", "", 0);
-  addPlayer("", "", 0);
-  addPlayer("", "", 0);
+  document.getElementById("clearRecords").addEventListener("click", () => {
+    if (!confirm("確定要清空本次所有玩家資料及設定嗎？此操作無法復原。")) return;
+    isRestoring = true;
+    document.getElementById("base").value = 100;
+    document.getElementById("tai").value = 20;
+    document.getElementById("pointRate").value = 20;
+    document.getElementById("eastValue").value = 50;
+    document.querySelector('input[name="eastMode"][value="included"]').checked = true;
+    document.querySelector('input[name="eastDisplay"][value="hide"]').checked = true;
+    document.querySelector('input[name="jiangDisplay"][value="show"]').checked = true;
+    tbody.innerHTML = "";
+    for (let i = 0; i < 4; i++) addPlayer();
+    isRestoring = false;
+    calculate();
+    document.getElementById("saveStatus").textContent = "✓ 已清空，新的紀錄會自動暫存";
+  });
+
+  // 優先載入上次紀錄；第一次使用則建立四位空白玩家
+  if (!restoreDraft()) {
+    for (let i = 0; i < 4; i++) addPlayer();
+    calculate();
+  } else {
+    calculate();
+  }
 </script>
 </body>
 </html>
