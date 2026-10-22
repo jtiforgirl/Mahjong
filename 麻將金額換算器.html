@@ -264,13 +264,29 @@
         <div class="radio-group">
           <label>
             <input type="radio" name="eastDisplay"
-                   value="show" checked>
+                   value="show">
             顯示東錢
           </label>
           <label>
             <input type="radio" name="eastDisplay"
-                   value="hide">
+                   value="hide" checked>
             不顯示東錢
+          </label>
+        </div>
+      </div>
+
+      <div style="grid-column: 1 / -1">
+        <label>戰績文字是否顯示將數？</label>
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="jiangDisplay"
+                   value="show" checked>
+            顯示將數
+          </label>
+          <label>
+            <input type="radio" name="jiangDisplay"
+                   value="hide">
+            不顯示將數
           </label>
         </div>
       </div>
@@ -293,6 +309,7 @@
           <tr>
             <th>姓名</th>
             <th>金額（元）</th>
+            <th>將數</th>
             <th>東錢個數</th>
             <th>換算點數</th>
             <th>操作</th>
@@ -351,7 +368,7 @@
   const tbody = document.getElementById("playerRows");
 
   // 建立一位玩家
-  function addPlayer(name = "", money = "", east = 0) {
+  function addPlayer(name = "", money = "", jiang = 0, east = 0) {
     const tr = document.createElement("tr");
 
     const nameTd = document.createElement("td");
@@ -372,6 +389,17 @@
     moneyInput.className = "player-money";
     moneyInput.setAttribute("aria-label", "輸入金額");
     moneyTd.appendChild(moneyInput);
+
+    const jiangTd = document.createElement("td");
+    const jiangInput = document.createElement("input");
+    jiangInput.type = "number";
+    jiangInput.min = "0";
+    jiangInput.placeholder = "例如1";
+    jiangInput.step = "1";
+    jiangInput.value = jiang;
+    jiangInput.className = "player-jiang";
+    jiangInput.setAttribute("aria-label", "將數");
+    jiangTd.appendChild(jiangInput);
 
     const eastTd = document.createElement("td");
     const eastInput = document.createElement("input");
@@ -400,7 +428,7 @@
     });
     actionTd.appendChild(deleteButton);
 
-    tr.append(nameTd, moneyTd, eastTd, pointsTd, actionTd);
+    tr.append(nameTd, moneyTd, jiangTd, eastTd, pointsTd, actionTd);
     tbody.appendChild(tr);
 
     tr.querySelectorAll("input").forEach(input => {
@@ -433,6 +461,9 @@
     const eastDisplay = document.querySelector(
       'input[name="eastDisplay"]:checked'
     ).value;
+    const jiangDisplay = document.querySelector(
+      'input[name="jiangDisplay"]:checked'
+    ).value;
 
     let totalMoney = 0;
     let totalEast = 0;
@@ -442,10 +473,13 @@
     tbody.querySelectorAll("tr").forEach(tr => {
       const name = tr.querySelector(".player-name").value.trim();
       const moneyInput = tr.querySelector(".player-money").value;
+      const jiangInput = tr.querySelector(".player-jiang").value;
       const eastInput = tr.querySelector(".player-east").value;
 
       const money = moneyInput === "" ? 0 : Number(moneyInput);
+      const jiang = jiangInput === "" ? 0 : Number(jiangInput);
       const east = eastInput === "" ? 0 : Number(eastInput);
+      const safeJiang = Number.isFinite(jiang) && jiang >= 0 ? jiang : 0;
       const safeEast = Number.isFinite(east) && east >= 0 ? east : 0;
       const safeMoney = Number.isFinite(money) ? money : 0;
 
@@ -479,12 +513,16 @@
 
       // 空白姓名不輸出，方便預先保留空白列
       if (name !== "") {
+        const jiangText = jiangDisplay === "show"
+          ? `${safeJiang}將 `
+          : "";
         const eastText = eastDisplay === "show"
           ? `${safeEast}東 `
           : "";
 
         lines.push(
           `${name} ${signedNumber(safeMoney)}元 ` +
+          jiangText +
           eastText +
           `${validRate ? signedNumber(points) : "未設定"}點`
         );
@@ -531,7 +569,7 @@
   });
 
   document.querySelectorAll(
-    '#base, #tai, #pointRate, #eastValue, input[name="eastMode"], input[name="eastDisplay"]'
+    '#base, #tai, #pointRate, #eastValue, input[name="eastMode"], input[name="eastDisplay"], input[name="jiangDisplay"]'
   ).forEach(input => {
     input.addEventListener("input", calculate);
     input.addEventListener("change", calculate);
